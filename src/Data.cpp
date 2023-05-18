@@ -15,6 +15,8 @@ Data::Data(const std::string &filename) {
             std::istringstream iss(line);
             iss >> x >> hyphen >> y;
             m_cities[city] = std::make_pair(x, y);
+            m_xSortedMap.insert(std::make_pair(Coordinate(x, y), city));
+            m_ySortedMap.insert(std::make_pair(Coordinate(x, y), city));
             city.clear();  // Reset the city for the next pair of coordinates
         }
     }
@@ -28,15 +30,7 @@ void Data::removeCity(const std::string &city) {
     m_cities.erase(city);
 }
 
-std::ostream &operator<<(std::ostream &os, const Data &data) {
-    for (const auto &city: data.m_cities) {
-        os << "City: " << city.first << ", x: " << city.second.first
-           << ", y: " << city.second.second << std::endl;
-    }
-    return os;
-}
-
-cities Data::search(const std::string& cityName, double radius, const  Func& normFunc) {
+cities Data::search(const std::string &cityName, double radius, const Func &normFunc) {
     cities result;
 
     // Check if the given city exists in the map
@@ -47,29 +41,66 @@ cities Data::search(const std::string& cityName, double radius, const  Func& nor
     }
 
     // Get the coordinates of the given city
-    std::pair<double, double> cityCoords = cityIt->second;
+    auto cityCoords = Coordinate(cityIt->second.first, cityIt->second.second);
+    auto squareResult = getSquare(cityCoords, radius);
 
-    cout << "cityName: " << cityName << endl;
-    cout << "cityCoords: " << cityCoords.first << " " << cityCoords.second << endl;
+    cout << "searching for " << cityName << " with radius " << radius << endl;
+    cout << "city coords: " << cityIt->second.first << " " << cityIt->second.second << endl;
+    cout << "m_cities size " << m_cities.size() << endl;
+    cout << "square result size: " << squareResult.size() << endl;
 
-    // Iterate over the cities and filter based on proximity
-    for (const auto& city : m_cities) {
-        const std::string& currentCity = city.first;
-        const std::pair<double, double>& currentCoords = city.second;
+//     Iterate over the cities and filter based on proximity
+    for (const auto &city: squareResult) {
+        const std::string &currentCity = city.first;
+        const std::pair<double, double> &currentCoords = city.second;
 
         // Skip the given city itself
         if (currentCity == cityName) {
             continue;
         }
-
         // Calculate the distance between the given city and the current city
-        double distance = normFunc(cityCoords, currentCoords);
+        double distance = normFunc({cityCoords.x, cityCoords.y}, currentCoords);
 
         // Check if the current city falls within the specified radius
         if (distance <= radius) {
             result[currentCity] = currentCoords;
         }
     }
+    cout << "result size: " << result.size() << endl;
 
     return result;
+}
+
+cities Data::getSquare(const Coordinate &cityCoords, double radius) {
+    cities result;
+
+    multimap<Coordinate, std::string, CompareByX> xSortedMap;
+    multimap<Coordinate, std::string, CompareByY> ySortedMap;
+
+    splitAndIntersect<Coordinate, multimap<Coordinate, std::string, CompareByX>>(xSortedMap, m_xSortedMap, cityCoords.x,
+                                                                                 radius);
+    splitAndIntersect<Coordinate, multimap<Coordinate, std::string, CompareByY>>(ySortedMap, m_ySortedMap, cityCoords.y,
+                                                                                 radius);
+
+    for (const auto &pair: xSortedMap) {
+        const std::string &city = pair.second;
+        const auto &coords = pair.first;
+        if (ySortedMap.find(coords) != ySortedMap.end()) {
+            result[city] = m_cities[city];
+        }
+    }
+    return result;
+}
+
+template<typename CoordinateType, typename MapType>
+void Data::splitAndIntersect(MapType &result, const MapType &sortedMap,
+                             double cityCoords, double radius) const {
+    double lowerBound = cityCoords - radius;
+    double upperBound = cityCoords + radius;
+    auto lowerBoundIt = sortedMap.lower_bound(CoordinateType(lowerBound, lowerBound));
+    auto upperBoundIt = sortedMap.upper_bound(CoordinateType(upperBound, upperBound));
+
+    for (auto it = lowerBoundIt; it != upperBoundIt; ++it) {
+        result.insert(*it);
+    }
 }
