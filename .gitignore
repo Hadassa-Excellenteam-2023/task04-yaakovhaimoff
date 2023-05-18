@@ -1,0 +1,14 @@
+# .gitignore file for CLion project
+
+# Ignore build directories
+cmake-build-*/
+
+# Ignore executable files
+*.exe
+*.out
+
+# Ignore CLion files
+.idea/
+*.iml
+*.iws
+*.ipr
