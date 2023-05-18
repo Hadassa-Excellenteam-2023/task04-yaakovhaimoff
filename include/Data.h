@@ -12,9 +12,14 @@ class Data {
 
     cities getSquare(const Coordinate &, double);
 
-    template<typename CoordinateType, typename MapType>
-    void splitAndIntersect(MapType &result, const MapType &sortedMap,
-                           double, double) const;
+
+    template <typename CoordinateType, typename MapType>
+    void splitAndIntersect(MapType&, const MapType&,
+                                 double, double) const;
+
+    template <typename MapTypeA, typename MapTypeB>
+    cities getResult(const MapTypeA &mapA, const MapTypeB &mapB);
+
 
 public:
     explicit Data(const std::string &);

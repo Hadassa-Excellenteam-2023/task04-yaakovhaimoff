@@ -77,20 +77,31 @@ cities Data::getSquare(const Coordinate &cityCoords, double radius) {
     multimap<Coordinate, std::string, CompareByX> xSortedMap;
     multimap<Coordinate, std::string, CompareByY> ySortedMap;
 
-    splitAndIntersect<Coordinate, multimap<Coordinate, std::string, CompareByX>>(xSortedMap, m_xSortedMap, cityCoords.x,
-                                                                                 radius);
-    splitAndIntersect<Coordinate, multimap<Coordinate, std::string, CompareByY>>(ySortedMap, m_ySortedMap, cityCoords.y,
-                                                                                 radius);
+    splitAndIntersect<Coordinate, multimap<Coordinate, std::string, CompareByX>>
+            (xSortedMap, m_xSortedMap, cityCoords.x, radius);
+    splitAndIntersect<Coordinate, multimap<Coordinate, std::string, CompareByY>>
+            (ySortedMap, m_ySortedMap, cityCoords.y, radius);
 
-    for (const auto &pair: xSortedMap) {
+    // send the smaller map first to getResult to reduce the number of iterations
+    const auto &shorterMap = (xSortedMap.size() <= ySortedMap.size()) ?
+            result = getResult(xSortedMap, ySortedMap) : result = getResult(ySortedMap, xSortedMap);
+
+    return result;
+}
+
+template<typename MapTypeA, typename MapTypeB>
+cities Data::getResult(const MapTypeA &mapA, const MapTypeB &mapB) {
+    cities result;
+    for (const auto &pair: mapA) {
         const std::string &city = pair.second;
         const auto &coords = pair.first;
-        if (ySortedMap.find(coords) != ySortedMap.end()) {
+        if (mapB.find(coords) != mapB.end()) {
             result[city] = m_cities[city];
         }
     }
     return result;
 }
+
 
 template<typename CoordinateType, typename MapType>
 void Data::splitAndIntersect(MapType &result, const MapType &sortedMap,
