@@ -5,7 +5,7 @@
 int main() {
 //    data.txt
 //    Yoncalla, OR
-//    100 1
+
     string filename, city;
     double radius;
     int searchWay;
@@ -14,26 +14,31 @@ int main() {
     cin >> filename;
     auto data = Data(filename);
 
-    cout << "Type city name:" << std::endl;
-    cout << "Type radius:" << std::endl;
-    cout << "Type search way:" << std::endl
-         << "0 - L2 norm (Euclidean distance)" << std::endl
-         << "1 - Infinity norm" << std::endl
-         << "2 - L1 norm (Manhattan distance)" << std::endl;
+    while (true) {
+        cout << "Please enter selected city name (with line break after it):" << std::endl;
+        cin.ignore(); // Ignore any previous newline character
+        getline(cin, city);
 
-    cin.ignore(); // Ignore any previous newline character
-    getline(cin, city);
-    cin >> radius;
-    cin >> searchWay;
+        if (city == "0") {
+            break; // Exit the loop if city name is '0'
+        }
 
+        cout << "Please enter the wanted radius:" << std::endl;
+        cin >> radius;
 
-    Func normFunc = Norm::searchNormFunction(searchWay);
+        cout << "Please enter the wanted norm (0 – L2, Euclidean distance, 1 – Linf,"
+                " Chebyshev distance, 2 – L1, Manhattan distance):"
+             << std::endl;
+        cin >> searchWay;
+        Func normFunc = Norm::searchNormFunction(searchWay);
 
-    if (normFunc) {
-        auto result = data.search(city, radius, normFunc);
-        data.printData(result);
-    } else {
-        std::cout << "Invalid choice!" << std::endl;
+        if (normFunc) {
+            int counter = 0;
+            auto result = data.search(city, radius, normFunc, counter);
+            data.printData(result, counter);
+        } else {
+            std::cout << "Invalid choice!" << std::endl;
+        }
     }
 
     return 0;

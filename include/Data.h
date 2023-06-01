@@ -3,14 +3,17 @@
 #include "macros.h"
 #include "Coordinates.h"
 
+static bool sortByValue(const std::pair<std::string, double>& a, const std::pair<std::string, double>& b) {
+    return a.second < b.second;
+}
 
 class Data {
 
-    cities m_cities;
-    multimap<Coordinate, std::string, CompareByX> m_xSortedMap;
-    multimap<Coordinate, std::string, CompareByY> m_ySortedMap;
+    Cities m_cities;
+    map<Coordinate, std::string, CompareByX> m_xSortedMap;
+    map<Coordinate, std::string, CompareByY> m_ySortedMap;
 
-    cities getSquare(const Coordinate &, double);
+    Cities getSquare(const Coordinate &, double);
 
 
     template <typename CoordinateType, typename MapType>
@@ -18,22 +21,17 @@ class Data {
                                  double, double) const;
 
     template <typename MapTypeA, typename MapTypeB>
-    cities getResult(const MapTypeA &mapA, const MapTypeB &mapB);
+    Cities getResult(const MapTypeA &mapA, const MapTypeB &mapB);
 
 
 public:
     explicit Data(const std::string &);
 
-    cities search(const std::string &, double, const Func &);
+    Result search(const std::string &, double, const Func &, int&);
 
     void addCity(const std::string &, double, double);
 
     void removeCity(const std::string &);
 
-    void printData(cities c) const {
-        for (const auto &city: c) {
-            std::cout << "City: " << city.first << ", Latitude: " << city.second.first
-                      << ", Longitude: " << city.second.second << std::endl;
-        }
-    }
+    void printData(Result r, int) const;
 };

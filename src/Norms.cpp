@@ -6,13 +6,13 @@ Norm::Norm() {
     m_normFunctions[2] = manhattanDistance;
 }
 
-Norm& Norm::getInstance() {
+Norm &Norm::getInstance() {
     static auto instance = Norm();
     return instance;
 }
 
 double Norm::euclideanDistance(std::pair<double, double> q1, std::pair<double, double> q2) {
-    return std::sqrt(q1.first * q2.first + q1.second * q2.second);
+    return std::sqrt(std::pow((q1.first - q2.first), 2) + std::pow((q1.second - q2.second), 2));
 }
 
 double Norm::infinityNorm(std::pair<double, double> q1, std::pair<double, double> q2) {
