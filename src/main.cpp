@@ -34,7 +34,7 @@ int main() {
 
         if (normFunc) {
             int counter = 0;
-            auto result = data.search(city, radius, normFunc, counter);
+            auto result = data.getListOfCitiesInRadius(city, radius, normFunc, counter);
             data.printData(result, counter);
         } else {
             std::cout << "Invalid choice!" << std::endl;

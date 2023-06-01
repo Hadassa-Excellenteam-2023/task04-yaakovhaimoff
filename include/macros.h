@@ -11,6 +11,7 @@
 #include <set>
 
 using std::map;
+using std::vector;
 using std::pair;
 using std::string;
 using std::cout;

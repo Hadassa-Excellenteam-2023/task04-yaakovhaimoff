@@ -1,8 +1,8 @@
 #include "Data.h"
 
-Data::Data(const std::string &filename) {
+Data::Data(const string &filename) {
     std::ifstream inputFile(filename);
-    std::string line, city, hyphen;
+    string line, city, hyphen;
     double x, y;
 
     while (std::getline(inputFile, line)) {
@@ -22,15 +22,15 @@ Data::Data(const std::string &filename) {
     }
 }
 
-void Data::addCity(const std::string &city, double latitude, double longitude) {
+void Data::addCity(const string &city, double latitude, double longitude) {
     m_cities[city] = std::make_pair(latitude, longitude);
 }
 
-void Data::removeCity(const std::string &city) {
+void Data::removeCity(const string &city) {
     m_cities.erase(city);
 }
 
-Result Data::search(const std::string &cityName, double radius, const Func &normFunc, int &counter) {
+Result Data::getListOfCitiesInRadius(const string &cityName, double radius, const Func &normFunc, int &counter) {
     Result result;
 
     //  Check if the given city exists in the map
@@ -44,75 +44,49 @@ Result Data::search(const std::string &cityName, double radius, const Func &norm
     auto cityCoords = Coordinate(cityIt->second.first, cityIt->second.second);
     auto squareResult = getSquare(cityCoords, radius);
 
-    //  Iterate over the Cities and filter based on proximity
-    for (const auto &city: squareResult) {
-        const std::string &currentCity = city.first;
-        const std::pair<double, double> &currentCoords = city.second;
-
-        //  Skip the given city itself
-        if (currentCity == cityName) {
-            continue;
-        }
-        //  Calculate the distance between the given city and the current city
-        double distance = normFunc({cityCoords.x, cityCoords.y}, currentCoords);
-
-        // Check if the current city falls within the specified radius
-        if (distance <= radius) {
-            result.push_back(std::make_pair(currentCity, distance));
-            if (cityCoords.y < currentCoords.second) {
-                counter++;
-            }
-        }
-    }
-
-    // Create a vector of key-value pairs from the map
-    Result sortedPairs(result.begin(), result.end());
-    // Sort the vector by value using the sortByValue comparator function
-    std::sort(sortedPairs.begin(), sortedPairs.end(), sortByValue);
-    return sortedPairs;
-}
-
-Cities Data::getSquare(const Coordinate &cityCoords, double radius) {
-    Cities result;
-
-    map<Coordinate, std::string, CompareByX> xSortedMap;
-    map<Coordinate, std::string, CompareByY> ySortedMap;
-
-    splitAndIntersect<Coordinate, map<Coordinate, std::string, CompareByX>>
-            (xSortedMap, m_xSortedMap, cityCoords.x, radius);
-    splitAndIntersect<Coordinate, map<Coordinate, std::string, CompareByY>>
-            (ySortedMap, m_ySortedMap, cityCoords.y, radius);
-
-    // send the smaller map first to getResult to reduce the number of iterations
-    const auto &shorterMap = (xSortedMap.size() <= ySortedMap.size()) ?
-            result = getResult(xSortedMap, ySortedMap) : result = getResult(ySortedMap, xSortedMap);
+    // get the cities in the circle
+    result = getCitiesInCircle(squareResult, cityName, cityCoords, radius, normFunc, counter);
+    // remove the given city from the result
+    std::erase(result, std::make_pair(cityName, 0.0));
+    // sort the result by the distance from the given city
+    std::sort(result.begin(), result.end(), SortByValue);
 
     return result;
 }
 
-template<typename CoordinateType, typename MapType>
-void Data::splitAndIntersect(MapType &result, const MapType &sortedMap,
-                             double cityCoords, double radius) const {
-    double lowerBound = cityCoords - radius;
-    double upperBound = cityCoords + radius;
-    auto lowerBoundIt = sortedMap.lower_bound(CoordinateType(lowerBound, lowerBound));
-    auto upperBoundIt = sortedMap.upper_bound(CoordinateType(upperBound, upperBound));
+Data::SquareResult Data::getSquare(const Coordinate &cityCoords, double radius) {
+    auto itBeginX = m_xSortedMap.lower_bound(Coordinate(cityCoords.x - radius, cityCoords.y));
+    auto itEndX = m_xSortedMap.upper_bound(Coordinate(cityCoords.x + radius, cityCoords.y));
+    auto itBeginY = m_ySortedMap.lower_bound(Coordinate(cityCoords.x, cityCoords.y - radius));
+    auto itEndY = m_ySortedMap.upper_bound(Coordinate(cityCoords.x, cityCoords.y + radius));
 
-    for (auto it = lowerBoundIt; it != upperBoundIt; ++it) {
-        result.insert(*it);
-    }
+    std::multimap<Coordinate, string, CompareByX> subMmapY(itBeginY, itEndY);
+    std::multimap<Coordinate, string, CompareByX> square;
+    std::set_intersection(itBeginX, itEndX, subMmapY.begin(), subMmapY.end(), std::inserter(square, square.begin()),
+                          SortSquare);
+    return square;
 }
 
-template<typename MapTypeA, typename MapTypeB>
-Cities Data::getResult(const MapTypeA &mapA, const MapTypeB &mapB) {
-    Cities result;
-    for (const auto &pair: mapA) {
-        const std::string &city = pair.second;
-        const auto &coords = pair.first;
-        if (mapB.find(coords) != mapB.end()) {
-            result[city] = m_cities[city];
-        }
-    }
+Result Data::getCitiesInCircle(SquareResult squareResult, const string &cityName, const Coordinate &cityCoords, double radius, const Func &normFunc, int&counter) {
+    Result result;
+    // Calculate the distance between the given city and the current city in the circle
+    std::transform(squareResult.begin(), squareResult.end(), std::back_inserter(result),
+                   [&cityCoords, &normFunc, &radius, &counter](const auto &city) {
+                       const string &currentCity = city.second;
+                       const std::pair<double, double> &currentCoords = {city.first.x, city.first.y};
+
+                       //  Calculate the distance between the given city and the current city
+                       double distance = normFunc({cityCoords.x, cityCoords.y}, currentCoords);
+
+                       // Check if the current city falls within the specified radius
+                       if (distance <= radius) {
+                           if (cityCoords.y < currentCoords.second) {
+                               counter++;
+                           }
+                           return std::make_pair(currentCity, distance);
+                       }
+                       return std::make_pair(currentCity, 0.0);
+                   });
     return result;
 }
 
@@ -120,7 +94,9 @@ void Data::printData(Result r, int northCities) const {
     cout << endl << "Search result:" << endl;
     cout << r.size() << " city/cities found in the given radius." << endl;
     cout << northCities << " cities are to the north of the selected city." << endl;
+    cout << "City list:" << endl;
     for (const auto &city: r) {
-        std::cout << "City: " << city.first << endl << endl;
+        cout << city.first << endl;
     }
+    cout << endl;
 }

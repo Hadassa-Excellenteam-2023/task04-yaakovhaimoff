@@ -2,36 +2,28 @@
 
 #include "macros.h"
 #include "Coordinates.h"
-
-static bool sortByValue(const std::pair<std::string, double>& a, const std::pair<std::string, double>& b) {
-    return a.second < b.second;
-}
+#include "SortStructs.h"
 
 class Data {
 
+    using SquareResult = multimap<Coordinate, string, CompareByX>;
+
     Cities m_cities;
-    map<Coordinate, std::string, CompareByX> m_xSortedMap;
-    map<Coordinate, std::string, CompareByY> m_ySortedMap;
+    map<Coordinate, string, CompareByX> m_xSortedMap;
+    map<Coordinate, string, CompareByY> m_ySortedMap;
 
-    Cities getSquare(const Coordinate &, double);
+    SquareResult getSquare(const Coordinate &, double);
 
-
-    template <typename CoordinateType, typename MapType>
-    void splitAndIntersect(MapType&, const MapType&,
-                                 double, double) const;
-
-    template <typename MapTypeA, typename MapTypeB>
-    Cities getResult(const MapTypeA &mapA, const MapTypeB &mapB);
-
+    Result getCitiesInCircle(SquareResult, const string&, const Coordinate &, double, const Func &, int&);
 
 public:
-    explicit Data(const std::string &);
+    explicit Data(const string &);
 
-    Result search(const std::string &, double, const Func &, int&);
+    Result getListOfCitiesInRadius(const string &, double, const Func &, int&);
 
-    void addCity(const std::string &, double, double);
+    void addCity(const string &, double, double);
 
-    void removeCity(const std::string &);
+    void removeCity(const string &);
 
     void printData(Result r, int) const;
 };
