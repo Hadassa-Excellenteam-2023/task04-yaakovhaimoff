@@ -195,7 +195,7 @@ Result Data::getCitiesInCircle(SquareResult squareResult,
                        // Check if the current city falls within the specified radius
                        if (distance <= radius) {
                            // Check if the current city is to the north of the given city
-                           if (cityCoords.y < currentCoords.second) {
+                           if (cityCoords.x < currentCoords.first) {
                                counter++;
                            }
                            return std::make_pair(currentCity, distance);
